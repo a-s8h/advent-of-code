@@ -1,4 +1,4 @@
-use std::{collections::HashSet, io::Empty, isize};
+use std::isize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Position {

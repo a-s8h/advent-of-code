@@ -125,7 +125,8 @@ fn scan_perimeters(region: &HashSet<(isize, isize)>) -> usize {
 
             for &lr_dir in &[(missing_dir.1, missing_dir.0), (-missing_dir.1, -missing_dir.0)] {
                 let mut cur = cell;
-                while let next = (cur.0 + lr_dir.0, cur.1 + lr_dir.1) {
+                loop {
+                    let next = (cur.0 + lr_dir.0, cur.1 + lr_dir.1);
                     let check = (next.0 + missing_dir.0, next.1 + missing_dir.1);
                     if region.contains(&next) && !region.contains(&check) {
                         found.insert(next);

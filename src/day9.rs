@@ -43,19 +43,6 @@ fn calculate_check_sum(file_map: &Vec<Option<u64>>) -> u64 {
     check_sum
 }
 
-fn input_to_compact_file_map(input: &str) -> Vec<(Option<u64>, u8)> {
-    let mut file_map: Vec<(Option<u64>, u8)> = Vec::with_capacity(input.len() / 2 + 1);
-    for (i, c) in input.chars().enumerate() {
-        let count = c.to_digit(10).unwrap();
-        if i % 2  == 0 {
-            file_map.push((Some((i / 2) as u64), count as u8));      
-        } else {
-            file_map.push((None, count as u8));      
-        }
-    }
-    file_map
-}
-
 #[derive(Debug)]
 struct Chunk {
     uncompressed_index: usize,

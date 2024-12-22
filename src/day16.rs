@@ -14,10 +14,6 @@ enum Direction {
 }
 
 impl Direction {
-    fn all() -> [Direction; 4] {
-        [Direction::North, Direction::East, Direction::South, Direction::West]
-    }
-
     fn opposite(&self) -> Self {
         match self {
             Direction::North => Direction::South,

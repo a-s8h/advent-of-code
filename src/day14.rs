@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 #[derive(Debug, Clone, Copy)]
 struct Robot<const WIDTH: usize, const HEIGHT: usize> {
     x: usize,
@@ -9,10 +7,6 @@ struct Robot<const WIDTH: usize, const HEIGHT: usize> {
 }
 
 impl<const WIDTH: usize, const HEIGHT: usize> Robot<WIDTH, HEIGHT> {
-    fn new(x: usize, y: usize, dx: isize, dy: isize) -> Self {
-        Robot { x, y, dx, dy }
-    }
-
     fn update_position_in_seconds(&mut self, seconds: isize) {
         self.x =
             ((self.x + WIDTH) as isize + ((self.dx * seconds) % WIDTH as isize)) as usize % WIDTH;
