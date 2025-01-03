@@ -1,5 +1,6 @@
-use std::cmp::Ordering;
-use std::collections::{BinaryHeap, HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
+use crate::utils::grid::Point;
+use crate::utils::bfs;
 
 // Cost constants
 const TURN_COST: usize = 1000;
@@ -41,13 +42,13 @@ impl Direction {
         }
     }
 
-    fn move_from(&self, pos: (usize, usize)) -> Option<(usize, usize)> {
-        let (x, y) = pos;
+    fn move_from(&self, pos: Point) -> Option<Point> {
+        let Point { x, y } = pos;
         match self {
-            Direction::North if y > 0 => Some((x, y - 1)),
-            Direction::East => Some((x + 1, y)),
-            Direction::South => Some((x, y + 1)),
-            Direction::West if x > 0 => Some((x - 1, y)),
+            Direction::North if y > 0 => Some(Point::new(x, y - 1)),
+            Direction::East => Some(Point::new(x + 1, y)),
+            Direction::South => Some(Point::new(x, y + 1)),
+            Direction::West if x > 0 => Some(Point::new(x - 1, y)),
             _ => None,
         }
     }
@@ -55,68 +56,27 @@ impl Direction {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 struct State {
-    pos: (usize, usize),
+    pos: Point,
     direction: Direction,
     score: usize,
 }
 
 impl State {
-    fn new(x: usize, y: usize, direction: Direction, score: usize) -> Self {
+    fn new(p: Point, direction: Direction, score: usize) -> Self {
         Self {
-            pos: (x, y),
+            pos: p,
             direction,
             score,
         }
     }
 }
 
-impl Ord for State {
-    fn cmp(&self, other: &Self) -> Ordering {
-        other.score.cmp(&self.score)
-    }
-}
-
-impl PartialOrd for State {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
 type ScoreMatrix = Vec<Vec<HashMap<Direction, usize>>>;
-
-fn find_lowest_score(maze: &[Vec<char>]) -> (usize, ScoreMatrix) {
-    let height = maze.len();
-    let width = maze[0].len();
-    let mut score_matrix = vec![vec![HashMap::with_capacity(4); width]; height];
-    
-    let (start, end) = find_start_end(maze);
-    let mut best_end_score = usize::MAX;
-    
-    let mut heap = BinaryHeap::new();
-    let initial_state = State::new(start.0, start.1, Direction::East, 0);
-    heap.push(initial_state);
-    score_matrix[start.1][start.0].insert(Direction::East, 0);
-
-    while let Some(state) = heap.pop() {
-        if state.pos == end {
-            best_end_score = best_end_score.min(state.score);
-            continue;
-        }
-
-        for next_move in get_valid_moves(state, width, height, maze, &score_matrix) {
-            score_matrix[next_move.pos.1][next_move.pos.0]
-                .insert(next_move.direction, next_move.score);
-            heap.push(next_move);
-        }
-    }
-
-    (best_end_score, score_matrix)
-}
 
 fn get_valid_moves(
     state: State,
-    width: usize,
-    height: usize,
+    width: i32,
+    height: i32,
     maze: &[Vec<char>],
     score_matrix: &ScoreMatrix,
 ) -> Vec<State> {
@@ -128,8 +88,8 @@ fn get_valid_moves(
     ];
 
     for &dir in &possible_directions {
-        if let Some((new_x, new_y)) = dir.move_from(state.pos) {
-            if new_x >= width || new_y >= height || maze[new_y][new_x] == '#' {
+        if let Some(Point { x, y }) = dir.move_from(state.pos) {
+            if x >= width || y >= height || maze[y as usize][x as usize] == '#' {
                 continue;
             }
 
@@ -139,24 +99,53 @@ fn get_valid_moves(
                 MOVE_COST
             };
 
-            if !score_matrix[new_y][new_x].contains_key(&dir)
-                || new_score < score_matrix[new_y][new_x][&dir]
+            if !score_matrix[y as usize][x as usize].contains_key(&dir)
+                || new_score < score_matrix[y as usize][x as usize][&dir]
             {
-                moves.push(State::new(new_x, new_y, dir, new_score));
+                moves.push(State::new(Point::new(x, y), dir, new_score));
             }
         }
     }
     moves
 }
 
-fn find_start_end(maze: &[Vec<char>]) -> ((usize, usize), (usize, usize)) {
-    let mut start = (0, 0);
-    let mut end = (0, 0);
+fn find_lowest_score(maze: &[Vec<char>]) -> (usize, ScoreMatrix) {
+    let height = maze.len();
+    let width = maze[0].len();
+    let mut score_matrix = vec![vec![HashMap::with_capacity(4); width]; height];
+    
+    let (start, end) = find_start_end(maze);
+    let mut best_end_score = usize::MAX;
+    
+    let mut queue = VecDeque::new();
+    let initial_state = State::new(start, Direction::East, 0);
+    queue.push_back(initial_state);
+    score_matrix[start.y as usize][start.x as usize].insert(Direction::East, 0);
+
+    while let Some(state) = queue.pop_front() {
+        if state.pos == end {
+            best_end_score = best_end_score.min(state.score);
+            continue;
+        }
+
+        for next_move in get_valid_moves(state, width as i32, height as i32, maze, &score_matrix) {
+            score_matrix[next_move.pos.y as usize][next_move.pos.x as usize]
+                .insert(next_move.direction, next_move.score);
+            queue.push_back(next_move);
+        }
+    }
+
+    (best_end_score, score_matrix)
+}
+
+fn find_start_end(maze: &[Vec<char>]) -> (Point, Point) {
+    let mut start = Point::new(0, 0);
+    let mut end = Point::new(0, 0);
     for (y, row) in maze.iter().enumerate() {
         for (x, &cell) in row.iter().enumerate() {
             match cell {
-                'S' => start = (x, y),
-                'E' => end = (x, y),
+                'S' => start = Point::new(x as i32, y as i32),
+                'E' => end = Point::new(x as i32, y as i32),
                 _ => continue,
             }
         }
@@ -170,7 +159,7 @@ fn count_shortest_path_tiles(maze: &[Vec<char>], score_matrix: &ScoreMatrix) -> 
     let mut queue = VecDeque::new();
     
     // Find minimum score at end position
-    let (&start_dir, &min_score) = score_matrix[end.1][end.0]
+    let (&start_dir, &min_score) = score_matrix[end.y as usize][end.x as usize]
         .iter()
         .min_by_key(|(_, &score)| score)
         .unwrap();
@@ -181,13 +170,13 @@ fn count_shortest_path_tiles(maze: &[Vec<char>], score_matrix: &ScoreMatrix) -> 
     while let Some((pos, score, dir)) = queue.pop_front() {
         let back_dir = dir.opposite();
         if let Some(neighbour_pos) = back_dir.move_from(pos) {
-            if neighbour_pos.0 >= maze[0].len() || neighbour_pos.1 >= maze.len() 
-                || maze[neighbour_pos.1][neighbour_pos.0] == '#' 
+            if neighbour_pos.x as usize >= maze[0].len() || neighbour_pos.y as usize >= maze.len() 
+                || maze[neighbour_pos.y as usize][neighbour_pos.x as usize] == '#' 
                 || visited.contains(&neighbour_pos) {
                 continue;
             }
 
-            for (&prev_dir, &prev_score) in &score_matrix[neighbour_pos.1][neighbour_pos.0] {
+            for (&prev_dir, &prev_score) in &score_matrix[neighbour_pos.y as usize][neighbour_pos.x as usize] {
                 if (score == prev_score + MOVE_COST && prev_dir == dir)
                     || (prev_dir != dir && score == prev_score + TURN_COST + MOVE_COST)
                 {

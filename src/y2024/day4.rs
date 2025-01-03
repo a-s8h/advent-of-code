@@ -11,6 +11,8 @@ static DIRECTIONS: [(i32, i32); 8] = [
 
 static XMAS: [char; 4] = ['X', 'M', 'A', 'S'];
 
+use crate::utils::grid::parse_grid;
+
 fn xmas_count(grid: Vec<Vec<char>>) -> usize {
     let mut count = 0;
 
@@ -45,19 +47,7 @@ fn check_word(grid: &Vec<Vec<char>>, mut x: i32, mut y: i32, direction: &(i32, i
     true
 }
 
-fn read_grid_from_file(filename: &str) -> Vec<Vec<char>> {
-    let file = std::fs::File::open(filename).unwrap();
-    let reader = std::io::BufReader::new(file);
-    let mut grid = Vec::new();
-    for line in std::io::BufRead::lines(reader) {
-        let line = line.unwrap();
-        let row = line.chars().collect::<Vec<_>>();
-        grid.push(row);
-    }
-    grid
-}
-
-pub fn x_mas_count(grid: &Vec<Vec<char>>) -> u32 {
+fn x_mas_count(grid: &Vec<Vec<char>>) -> u32 {
     let mut count: u32 = 0;
     for (x, line) in grid.iter().enumerate() {
         for (y, char) in line.iter().enumerate() {
@@ -87,11 +77,11 @@ mod tests {
 
     #[test]
     fn test_xmas_count() {
-        assert_eq!(xmas_count(read_grid_from_file("input/day4.txt")), 2336);
+        assert_eq!(xmas_count(parse_grid(&std::fs::read_to_string("input/day4.txt").unwrap())), 2336);
     }
 
     #[test]
     fn test_x_mas_count() {
-        assert_eq!(x_mas_count(&read_grid_from_file("input/day4.txt")), 1831);
+        assert_eq!(x_mas_count(&parse_grid(&std::fs::read_to_string("input/day4.txt").unwrap())), 1831);
     }
 }
